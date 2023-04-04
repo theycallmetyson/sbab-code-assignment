@@ -18,7 +18,6 @@ public class LineController {
 
     @GetMapping
     public List<Line> getAllLines() {
-        List<Line> lines = lineService.getAllLines();
-        return lines;
+        return lineService.getAllLines();
     }
 }
