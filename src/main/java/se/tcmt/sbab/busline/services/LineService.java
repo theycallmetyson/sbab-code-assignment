@@ -13,6 +13,7 @@ import se.tcmt.sbab.busline.models.Line;
 import se.tcmt.sbab.busline.models.ResponseModel;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class LineService {
@@ -23,31 +24,34 @@ public class LineService {
     @Value("${line.url}")
     private String url;
 
+
+    public List<Line> getLines(Optional<Integer> top) {
+        ResponseEntity<ResponseModel<Line>> responseModel = invokeExternalAPI(top);
+
+        return responseModel.getBody().getResponseData().getResult();
+    }
+
     private HttpEntity<?> requestEntityWithCompressionHeaders() {
         HttpHeaders requestHeaders = new HttpHeaders();
         requestHeaders.add(HttpHeaders.ACCEPT_ENCODING, "gzip");
         return new HttpEntity<>(requestHeaders);
     }
 
-    public List<Line> getAllLines() {
-        ResponseEntity<ResponseModel<Line>> responseModel = getLines();
+    private ResponseEntity<ResponseModel<Line>> invokeExternalAPI(Optional<Integer> top) {
+        ResponseEntity<ResponseModel<Line>> response;
 
-        return responseModel.getBody().getResponseData().getResult();
-    }
+        if (top.isPresent()) {
+            return null;
+        } else {
+            response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    requestEntityWithCompressionHeaders(),
+                    new ParameterizedTypeReference<>() {
+                    }
+            );
+        }
 
-    private ResponseEntity<ResponseModel<Line>> getLines() {
-        ResponseEntity<ResponseModel<Line>> response = restTemplate
-                .exchange(
-                        url,
-                        HttpMethod.GET,
-                        requestEntityWithCompressionHeaders(),
-                        new ParameterizedTypeReference<>() {
-                        }
-                );
-
-        return ResponseEntity
-                .status(response.getStatusCode())
-                .headers(response.getHeaders())
-                .body(response.getBody());
+        return response;
     }
 }
