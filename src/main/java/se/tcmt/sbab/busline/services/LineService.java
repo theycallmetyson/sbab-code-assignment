@@ -14,7 +14,8 @@ import se.tcmt.sbab.busline.models.Line;
 import se.tcmt.sbab.busline.models.StopPoint;
 
 import java.io.IOException;
-import java.util.Collection;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class LineService {
@@ -30,9 +31,13 @@ public class LineService {
     private final OkHttpClient client = new OkHttpClient();
 
     @Cacheable("lines")
-    public Collection<Line> getAllBusLines() throws IOException {
-        return fetchData(lineUrl, new TypeReference<>() {
-        });
+    public Collection<Line> getAllBusLines(Optional<Integer> topRanks) throws IOException {
+        if (topRanks.isPresent()) {
+            return getBusLinesByTopRank(topRanks.get());
+        } else {
+            return fetchData(lineUrl, new TypeReference<>() {
+            });
+        }
     }
 
     @Cacheable("stops")
@@ -47,6 +52,28 @@ public class LineService {
     public Collection<JourneyPatternPointOnLine> getAllBusJourneyPatterns() throws IOException {
         return fetchData(journeyUrl, new TypeReference<>() {
         });
+    }
+
+    private Collection<Line> getBusLinesByTopRank(Integer topRanks) throws IOException {
+        Map<String, Collection<JourneyPatternPointOnLine>> topJourneyPatterns = getBusJourneyPatternsByTopRank(topRanks);
+        Collection<Line> allBusLines = getAllBusLines(Optional.empty());
+        List<String> lineList = new ArrayList<>();
+        for (Map.Entry<String, Collection<JourneyPatternPointOnLine>> entry : topJourneyPatterns.entrySet()) {
+            lineList.add(entry.getKey());
+        }
+        allBusLines.removeIf(line -> !lineList.contains(String.valueOf(line.getLineNumber())));
+        return allBusLines;
+    }
+
+    public Map<String, Collection<JourneyPatternPointOnLine>> getBusJourneyPatternsByTopRank(int topRanks) throws IOException {
+        Collection<JourneyPatternPointOnLine> journeyPatterns = getAllBusJourneyPatterns();
+
+        return journeyPatterns.stream()
+                .collect(Collectors.groupingBy(JourneyPatternPointOnLine::getLineNumber))
+                .entrySet().stream()
+                .sorted(Comparator.comparingInt(entry -> -entry.getValue().size()))
+                .limit(topRanks)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     private <T> Collection<T> fetchData(String url, TypeReference<BaseModel<T>> typeReference) throws IOException {
