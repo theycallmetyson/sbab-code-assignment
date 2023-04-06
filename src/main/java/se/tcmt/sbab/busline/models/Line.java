@@ -5,6 +5,7 @@ import lombok.Data;
 
 @Data
 public class Line {
+    @JsonProperty("LineNumber")
     private int lineNumber;
     @JsonProperty("DefaultTransportMode")
     private String defaultTransportMode;
@@ -12,7 +13,7 @@ public class Line {
     private String defaultTransportModeCode;
     @JsonProperty("ExistsFromDate")
     private String existsFromDate;
-    @JsonProperty("ExistsToDate")
+    @JsonProperty("LastModifiedUtcDateTime")
     private String lastModifiedUtcDateTime;
     @JsonProperty("LineDesignation")
     private String lineDesignation;
