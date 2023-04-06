@@ -31,49 +31,62 @@ public class LineService {
     private final OkHttpClient client = new OkHttpClient();
 
     @Cacheable("lines")
-    public Collection<Line> getAllBusLines(Optional<Integer> topRanks) throws IOException {
+    public Map<String, Collection<?>> getAllBusLines(Optional<Integer> topRanks) throws IOException {
         if (topRanks.isPresent()) {
-            return getBusLinesByTopRank(topRanks.get());
+            return getAllStopPointsGroupedByLineNumber(topRanks.get());
         } else {
-            return fetchData(lineUrl, new TypeReference<>() {
+            Collection<Line> linesCollection = fetchData(lineUrl, new TypeReference<>() {
             });
+            Map<String, Collection<?>> linesMap = new HashMap<>();
+            linesMap.put("Lines", linesCollection);
+            return linesMap;
         }
     }
 
-    @Cacheable("stops")
-    public Collection<StopPoint> getAllBusStops() throws IOException {
+    private Collection<StopPoint> getAllBusStops() throws IOException {
         Collection<StopPoint> stopPoints = fetchData(stopUrl, new TypeReference<>() {
         });
         stopPoints.removeIf(stopPoint -> !stopPoint.getStopAreaTypeCode().equals("BUSTERM"));
         return stopPoints;
     }
 
-    @Cacheable("journeypatterns")
-    public Collection<JourneyPatternPointOnLine> getAllBusJourneyPatterns() throws IOException {
+    private Collection<JourneyPatternPointOnLine> getAllBusJourneyPatterns() throws IOException {
         return fetchData(journeyUrl, new TypeReference<>() {
         });
     }
 
-    private Collection<Line> getBusLinesByTopRank(Integer topRanks) throws IOException {
-        Map<String, Collection<JourneyPatternPointOnLine>> topJourneyPatterns = getBusJourneyPatternsByTopRank(topRanks);
-        Collection<Line> allBusLines = getAllBusLines(Optional.empty());
-        List<String> lineList = new ArrayList<>();
-        for (Map.Entry<String, Collection<JourneyPatternPointOnLine>> entry : topJourneyPatterns.entrySet()) {
-            lineList.add(entry.getKey());
-        }
-        allBusLines.removeIf(line -> !lineList.contains(String.valueOf(line.getLineNumber())));
-        return allBusLines;
-    }
-
-    public Map<String, Collection<JourneyPatternPointOnLine>> getBusJourneyPatternsByTopRank(int topRanks) throws IOException {
+    private Map<String, Collection<JourneyPatternPointOnLine>> getBusJourneyPatternsByTopRank(int topRanks) throws IOException {
         Collection<JourneyPatternPointOnLine> journeyPatterns = getAllBusJourneyPatterns();
 
         return journeyPatterns.stream()
                 .collect(Collectors.groupingBy(JourneyPatternPointOnLine::getLineNumber))
-                .entrySet().stream()
+                .entrySet().parallelStream()
                 .sorted(Comparator.comparingInt(entry -> -entry.getValue().size()))
                 .limit(topRanks)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    private Map<String, Collection<?>> getAllStopPointsGroupedByLineNumber(Integer topRanks) throws IOException {
+        Collection<StopPoint> allStopPoints = getAllBusStops();
+        Map<String, Collection<JourneyPatternPointOnLine>> topJourneyPatterns = getBusJourneyPatternsByTopRank(topRanks);
+        Map<String, Collection<?>> stopPointsGroupedByTopLineNumbers = new HashMap<>();
+
+        for (Map.Entry<String, Collection<JourneyPatternPointOnLine>> entry : topJourneyPatterns.entrySet()) {
+            Collection<StopPoint> stopPoints = new ArrayList<>();
+            Collection<JourneyPatternPointOnLine> journeyPatterns = entry.getValue();
+            journeyPatterns.forEach(journeyPattern -> {
+                List<String> stopPointNumbers = Arrays.asList(journeyPattern.getJourneyPatternPointNumber().split(","));
+                stopPointNumbers.forEach(stopPointNumber -> {
+                    allStopPoints.forEach(stopPoint -> {
+                        if (stopPointNumber.equals(String.valueOf(stopPoint.getStopPointNumber()))) {
+                            stopPoints.add(stopPoint);
+                        }
+                    });
+                });
+            });
+            stopPointsGroupedByTopLineNumbers.put(entry.getKey(), stopPoints);
+        }
+        return stopPointsGroupedByTopLineNumbers;
     }
 
     private <T> Collection<T> fetchData(String url, TypeReference<BaseModel<T>> typeReference) throws IOException {
