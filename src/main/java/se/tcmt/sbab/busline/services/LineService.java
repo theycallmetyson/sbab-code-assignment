@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import se.tcmt.sbab.busline.models.BaseModel;
+import se.tcmt.sbab.busline.models.JourneyPatternPointOnLine;
 import se.tcmt.sbab.busline.models.Line;
 import se.tcmt.sbab.busline.models.StopPoint;
 
@@ -23,6 +24,9 @@ public class LineService {
 
     @Value("${stop.point.url}")
     private String stopUrl;
+
+    @Value("${journey.pattern.url}")
+    private String journeyUrl;
     private final OkHttpClient client = new OkHttpClient();
 
     @Cacheable("lines")
@@ -37,6 +41,12 @@ public class LineService {
         });
         stopPoints.removeIf(stopPoint -> !stopPoint.getStopAreaTypeCode().equals("BUSTERM"));
         return stopPoints;
+    }
+
+    @Cacheable("journeypatterns")
+    public Collection<JourneyPatternPointOnLine> getAllBusJourneyPatterns() throws IOException {
+        return fetchData(journeyUrl, new TypeReference<>() {
+        });
     }
 
     private <T> Collection<T> fetchData(String url, TypeReference<BaseModel<T>> typeReference) throws IOException {
