@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import se.tcmt.sbab.busline.models.BaseModel;
 import se.tcmt.sbab.busline.models.Line;
+import se.tcmt.sbab.busline.models.StopPoint;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -17,14 +18,25 @@ import java.util.Collection;
 public class LineService {
 
     @Value("${line.url}")
-    private String url;
+    private String lineUrl;
+
+    @Value("${stop.point.url}")
+    private String stopUrl;
     private final OkHttpClient client = new OkHttpClient();
 
-    public Collection<Line> getAllLines() throws IOException {
-        return fetchData(url);
+    public Collection<Line> getAllBusLines() throws IOException {
+        return fetchData(lineUrl, new TypeReference<>() {
+        });
     }
 
-    private <T> Collection<T> fetchData(String url) throws IOException {
+    public Collection<StopPoint> getAllBusStops() throws IOException {
+        Collection<StopPoint> stopPoints = fetchData(stopUrl, new TypeReference<>() {
+        });
+        stopPoints.removeIf(stopPoint -> !stopPoint.getStopAreaTypeCode().equals("BUSTERM"));
+        return stopPoints;
+    }
+
+    private <T> Collection<T> fetchData(String url, TypeReference<BaseModel<T>> typeReference) throws IOException {
         Request request = new Request.Builder().url(url).build();
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -32,8 +44,8 @@ public class LineService {
             if (!response.isSuccessful()) {
                 throw new IOException("Unexpected code: " + response);
             }
-            BaseModel<T> data = objectMapper.readValue(response.body().string(), new TypeReference<>() {
-            });
+            assert response.body() != null;
+            BaseModel<T> data = objectMapper.readValue(response.body().string(), typeReference);
 
             return data.getResponseData().getResult();
         }
