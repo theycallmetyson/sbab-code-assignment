@@ -74,20 +74,20 @@ public class LineService {
         for (Map.Entry<String, Collection<JourneyPatternPointOnLine>> entry : topJourneyPatterns.entrySet()) {
             Collection<StopPoint> stopPoints = new ArrayList<>();
             Collection<JourneyPatternPointOnLine> journeyPatterns = entry.getValue();
-            journeyPatterns.forEach(journeyPattern -> {
+
+            for (JourneyPatternPointOnLine journeyPattern : journeyPatterns) {
                 List<String> stopPointNumbers = Arrays.asList(journeyPattern.getJourneyPatternPointNumber().split(","));
-                stopPointNumbers.forEach(stopPointNumber -> {
-                    allStopPoints.forEach(stopPoint -> {
-                        if (stopPointNumber.equals(String.valueOf(stopPoint.getStopPointNumber()))) {
-                            stopPoints.add(stopPoint);
-                        }
-                    });
-                });
-            });
+                for (StopPoint stopPoint : allStopPoints) {
+                    if (stopPointNumbers.contains(String.valueOf(stopPoint.getStopPointNumber()))) {
+                        stopPoints.add(stopPoint);
+                    }
+                }
+            }
             stopPointsGroupedByTopLineNumbers.put(entry.getKey(), stopPoints);
         }
         return stopPointsGroupedByTopLineNumbers;
     }
+
 
     private <T> Collection<T> fetchData(String url, TypeReference<BaseModel<T>> typeReference) throws IOException {
         Request request = new Request.Builder().url(url).build();
