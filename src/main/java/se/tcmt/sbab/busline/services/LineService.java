@@ -10,7 +10,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import se.tcmt.sbab.busline.models.BaseModel;
 import se.tcmt.sbab.busline.models.JourneyPatternPointOnLine;
-import se.tcmt.sbab.busline.models.Line;
 import se.tcmt.sbab.busline.models.StopPoint;
 
 import java.io.IOException;
@@ -35,11 +34,8 @@ public class LineService {
         if (topRanks.isPresent()) {
             return getAllStopPointsGroupedByLineNumber(topRanks.get());
         } else {
-            Collection<Line> linesCollection = fetchData(lineUrl, new TypeReference<>() {
-            });
-            Map<String, Collection<?>> linesMap = new HashMap<>();
-            linesMap.put("Lines", linesCollection);
-            return linesMap;
+            return Collections.singletonMap("Lines", fetchData(lineUrl, new TypeReference<>() {
+            }));
         }
     }
 
@@ -63,7 +59,7 @@ public class LineService {
                 .entrySet().parallelStream()
                 .sorted(Comparator.comparingInt(entry -> -entry.getValue().size()))
                 .limit(topRanks)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> v1, LinkedHashMap::new));
     }
 
     private Map<String, Collection<?>> getAllStopPointsGroupedByLineNumber(Integer topRanks) throws IOException {
@@ -87,7 +83,6 @@ public class LineService {
         }
         return stopPointsGroupedByTopLineNumbers;
     }
-
 
     private <T> Collection<T> fetchData(String url, TypeReference<BaseModel<T>> typeReference) throws IOException {
         Request request = new Request.Builder().url(url).build();
