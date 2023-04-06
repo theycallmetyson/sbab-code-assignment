@@ -5,9 +5,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import se.tcmt.sbab.busline.models.Line;
+import se.tcmt.sbab.busline.models.StopPoint;
 import se.tcmt.sbab.busline.services.LineService;
 
-import java.util.List;
+import java.io.IOException;
+import java.util.Collection;
 
 @RestController
 @RequestMapping(path = "/api/v1/lines", produces = "application/json")
@@ -17,7 +19,12 @@ public class LineController {
     private LineService lineService;
 
     @GetMapping
-    public List<Line> getAllLines() {
-        return lineService.getAllLines();
+    public Collection<Line> getAllLines() throws IOException {
+        return lineService.getAllBusLines();
+    }
+
+    @GetMapping("/stops")
+    public Collection<StopPoint> getAllStops() throws IOException {
+        return lineService.getAllBusStops();
     }
 }

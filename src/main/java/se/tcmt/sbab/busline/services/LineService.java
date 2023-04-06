@@ -1,53 +1,53 @@
 package se.tcmt.sbab.busline.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import se.tcmt.sbab.busline.models.BaseModel;
 import se.tcmt.sbab.busline.models.Line;
-import se.tcmt.sbab.busline.models.ResponseModel;
+import se.tcmt.sbab.busline.models.StopPoint;
 
-import java.util.List;
+import java.io.IOException;
+import java.util.Collection;
 
 @Service
 public class LineService {
 
-    @Autowired
-    private RestTemplate restTemplate;
-
     @Value("${line.url}")
-    private String url;
+    private String lineUrl;
 
-    private HttpEntity<?> requestEntityWithCompressionHeaders() {
-        HttpHeaders requestHeaders = new HttpHeaders();
-        requestHeaders.add(HttpHeaders.ACCEPT_ENCODING, "gzip");
-        return new HttpEntity<>(requestHeaders);
+    @Value("${stop.point.url}")
+    private String stopUrl;
+    private final OkHttpClient client = new OkHttpClient();
+
+    public Collection<Line> getAllBusLines() throws IOException {
+        return fetchData(lineUrl, new TypeReference<>() {
+        });
     }
 
-    public List<Line> getAllLines() {
-        ResponseEntity<ResponseModel<Line>> responseModel = getLines();
-
-        return responseModel.getBody().getResponseData().getResult();
+    public Collection<StopPoint> getAllBusStops() throws IOException {
+        Collection<StopPoint> stopPoints = fetchData(stopUrl, new TypeReference<>() {
+        });
+        stopPoints.removeIf(stopPoint -> !stopPoint.getStopAreaTypeCode().equals("BUSTERM"));
+        return stopPoints;
     }
 
-    private ResponseEntity<ResponseModel<Line>> getLines() {
-        ResponseEntity<ResponseModel<Line>> response = restTemplate
-                .exchange(
-                        url,
-                        HttpMethod.GET,
-                        requestEntityWithCompressionHeaders(),
-                        new ParameterizedTypeReference<>() {
-                        }
-                );
+    private <T> Collection<T> fetchData(String url, TypeReference<BaseModel<T>> typeReference) throws IOException {
+        Request request = new Request.Builder().url(url).build();
+        ObjectMapper objectMapper = new ObjectMapper();
 
-        return ResponseEntity
-                .status(response.getStatusCode())
-                .headers(response.getHeaders())
-                .body(response.getBody());
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("Unexpected code: " + response);
+            }
+            assert response.body() != null;
+            BaseModel<T> data = objectMapper.readValue(response.body().string(), typeReference);
+
+            return data.getResponseData().getResult();
+        }
     }
 }
