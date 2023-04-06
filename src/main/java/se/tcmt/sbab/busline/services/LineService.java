@@ -6,6 +6,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import se.tcmt.sbab.busline.models.BaseModel;
 import se.tcmt.sbab.busline.models.Line;
@@ -24,11 +25,13 @@ public class LineService {
     private String stopUrl;
     private final OkHttpClient client = new OkHttpClient();
 
+    @Cacheable("lines")
     public Collection<Line> getAllBusLines() throws IOException {
         return fetchData(lineUrl, new TypeReference<>() {
         });
     }
 
+    @Cacheable("stops")
     public Collection<StopPoint> getAllBusStops() throws IOException {
         Collection<StopPoint> stopPoints = fetchData(stopUrl, new TypeReference<>() {
         });
