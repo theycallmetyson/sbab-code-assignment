@@ -43,6 +43,7 @@ public class LineService {
         return stopPoints;
     }
 
+    @Cacheable("journeypatterns")
     public Collection<JourneyPatternPointOnLine> getAllBusJourneyPatterns() throws IOException {
         return fetchData(journeyUrl, new TypeReference<>() {
         });
