@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 import se.tcmt.sbab.busline.models.Line;
 import se.tcmt.sbab.busline.services.LineService;
 
-import java.util.List;
+import java.util.Collection;
 
 @RestController
 @RequestMapping(path = "/api/v1/lines", produces = "application/json")
@@ -17,7 +17,7 @@ public class LineController {
     private LineService lineService;
 
     @GetMapping
-    public List<Line> getAllLines() {
+    public Collection<Line> getAllLines() {
         return lineService.getAllLines();
     }
 }

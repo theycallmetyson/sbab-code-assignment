@@ -9,10 +9,10 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import se.tcmt.sbab.busline.models.BaseModel;
 import se.tcmt.sbab.busline.models.Line;
-import se.tcmt.sbab.busline.models.ResponseModel;
 
-import java.util.List;
+import java.util.Collection;
 
 @Service
 public class LineService {
@@ -29,25 +29,18 @@ public class LineService {
         return new HttpEntity<>(requestHeaders);
     }
 
-    public List<Line> getAllLines() {
-        ResponseEntity<ResponseModel<Line>> responseModel = getLines();
-
-        return responseModel.getBody().getResponseData().getResult();
+    public Collection<Line> getAllLines() {
+        BaseModel<Line> response = fetchAllLines();
+        return response.getResponseData().getResult();
     }
 
-    private ResponseEntity<ResponseModel<Line>> getLines() {
-        ResponseEntity<ResponseModel<Line>> response = restTemplate
-                .exchange(
-                        url,
-                        HttpMethod.GET,
-                        requestEntityWithCompressionHeaders(),
-                        new ParameterizedTypeReference<>() {
-                        }
-                );
-
-        return ResponseEntity
-                .status(response.getStatusCode())
-                .headers(response.getHeaders())
-                .body(response.getBody());
+    private BaseModel<Line> fetchAllLines() {
+        ResponseEntity<BaseModel<Line>> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                requestEntityWithCompressionHeaders(),
+                new ParameterizedTypeReference<>() {
+                });
+        return response.getBody();
     }
 }
