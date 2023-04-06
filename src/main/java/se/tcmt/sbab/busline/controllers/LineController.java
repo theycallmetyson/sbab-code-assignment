@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 import se.tcmt.sbab.busline.models.Line;
 import se.tcmt.sbab.busline.services.LineService;
 
+import java.io.IOException;
 import java.util.Collection;
 
 @RestController
@@ -17,7 +18,7 @@ public class LineController {
     private LineService lineService;
 
     @GetMapping
-    public Collection<Line> getAllLines() {
+    public Collection<Line> getAllLines() throws IOException {
         return lineService.getAllLines();
     }
 }
